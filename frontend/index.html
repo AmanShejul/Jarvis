@@ -2,12 +2,91 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Viewport -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+
+    <!-- Theme -->
     <meta name="theme-color" content="#05070b" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- SEO -->
+    <meta
+      name="description"
+      content="J.A.R.V.I.S. — Advanced AI Command Interface"
+    />
+    <meta
+      name="keywords"
+      content="JARVIS, AI Assistant, Artificial Intelligence, Command Interface, Personal Assistant"
+    />
+    <meta name="author" content="J.A.R.V.I.S." />
+
+    <!-- Prevent indexing during development -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Browser UI -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="J.A.R.V.I.S."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="J.A.R.V.I.S. // Command Interface" />
+    <meta
+      property="og:description"
+      content="Advanced AI-powered personal command interface."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Preconnect for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Futuristic fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Title -->
     <title>J.A.R.V.I.S. // Command Interface</title>
   </head>
+
   <body>
+    <!-- React Root -->
     <div id="root"></div>
+
+    <!-- React Entry -->
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- No JavaScript fallback -->
+    <noscript>
+      <div
+        style="
+          background:#05070b;
+          color:#00e5ff;
+          min-height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          font-family:monospace;
+          text-align:center;
+        "
+      >
+        J.A.R.V.I.S. requires JavaScript to operate.
+      </div>
+    </noscript>
   </body>
 </html>
