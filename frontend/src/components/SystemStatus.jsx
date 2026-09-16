@@ -10,7 +10,7 @@ export default function SystemStatus({ stats }) {
       <div className="metric-list">
         {metrics.map((metric) => {
           const Icon = icons[metric.label]
-          const value = stats[metric.label.toLowerCase()]
+          const value = stats[metric.label.toLowerCase()] ?? 0
           return <div className="metric-row" key={metric.label}><div className="metric-name"><Icon size={14} /><span>{metric.label}</span></div><strong>{value}%</strong><div className="metric-track"><i className={metric.color} style={{ width: `${value}%` }} /></div></div>
         })}
       </div>

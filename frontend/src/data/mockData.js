@@ -17,7 +17,6 @@ export const initialActivity = [
 
 export const metrics = [
   { label: 'CPU', value: 12, color: 'red' },
-  { label: 'GPU', value: 8, color: 'cyan' },
   { label: 'RAM', value: 46, color: 'red' },
   { label: 'DISK', value: 31, color: 'cyan' },
 ]

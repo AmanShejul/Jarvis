@@ -1,17 +1,24 @@
-// These functions are the seam for the future Python/FastAPI integration.
-// They intentionally return local mock data until a backend is available.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+
+async function request(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, options)
+  if (!response.ok) throw new Error(`Backend request failed: ${response.status}`)
+  return response.json()
+}
+
 export async function sendCommand(command) {
-  return {
-    ok: true,
-    command,
-    response: 'Command received. Backend connection required to execute this action.',
-  }
+  return request('/command', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command }),
+  })
 }
 
 export async function getSystemStats() {
-  return { cpu: 12, gpu: 8, ram: 46, storage: 31 }
+  return request('/system')
 }
 
 export async function getJarvisStatus() {
-  return { state: 'ONLINE', message: 'All systems operational' }
+  const health = await request('/health')
+  return { state: health.status === 'online' ? 'ONLINE' : 'OFFLINE', message: health.assistant }
 }

@@ -6,8 +6,9 @@ export function useJarvis() {
   const [clock, setClock] = useState(new Date())
   const [isListening, setIsListening] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [stats, setStats] = useState({ cpu: 12, gpu: 8, ram: 46, storage: 31 })
-  const [status, setStatus] = useState({ state: 'ONLINE', message: 'All systems operational' })
+  const [stats, setStats] = useState({ cpu: 0, ram: 0, disk: 0, battery: null })
+  const [status, setStatus] = useState({ state: 'CONNECTING', message: 'Checking backend' })
+  const [isProcessing, setIsProcessing] = useState(false)
   const [activity, setActivity] = useState(initialActivity)
   const [messages, setMessages] = useState([
     { role: 'jarvis', text: 'Good morning, Aman. How can I help you today?' },
@@ -19,22 +20,43 @@ export function useJarvis() {
   }, [])
 
   useEffect(() => {
-    Promise.all([getSystemStats(), getJarvisStatus()]).then(([nextStats, nextStatus]) => {
-      setStats(nextStats)
-      setStatus(nextStatus)
-    })
+    let active = true
+    const refresh = async () => {
+      try {
+        const [nextStats, nextStatus] = await Promise.all([getSystemStats(), getJarvisStatus()])
+        if (active) {
+          setStats(nextStats)
+          setStatus(nextStatus)
+        }
+      } catch {
+        if (active) setStatus({ state: 'BACKEND OFFLINE', message: 'Start the Python service' })
+      }
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 2500)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [])
 
   const submitCommand = useCallback(async (command) => {
     const trimmedCommand = command.trim()
     if (!trimmedCommand) return
     setMessages((current) => [...current, { role: 'user', text: trimmedCommand }])
-    const result = await sendCommand(trimmedCommand)
-    setMessages((current) => [...current, { role: 'jarvis', text: result.response }])
-    setActivity((current) => [
-      { icon: 'terminal', title: `Command: ${trimmedCommand}`, time: 'Just now' },
-      ...current.slice(0, 3),
-    ])
+    setIsProcessing(true)
+    try {
+      const result = await sendCommand(trimmedCommand)
+      setMessages((current) => [...current, { role: 'jarvis', text: result.message }])
+      setActivity((current) => [
+        { icon: 'terminal', title: `Command: ${trimmedCommand}`, time: 'Just now' },
+        ...current.slice(0, 3),
+      ])
+    } catch {
+      setMessages((current) => [...current, { role: 'jarvis', text: 'Backend unavailable, sir. Please start the Python service.' }])
+    } finally {
+      setIsProcessing(false)
+    }
   }, [])
 
   const toggleListening = useCallback(() => setIsListening((current) => !current), [])
@@ -48,6 +70,7 @@ export function useJarvis() {
     status,
     activity,
     messages,
+    isProcessing,
     submitCommand,
     toggleListening,
     togglePlaying,

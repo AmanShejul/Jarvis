@@ -7,7 +7,7 @@ function Waveform() {
   return <div className="waveform" aria-label="Listening waveform">{Array.from({ length: 32 }).map((_, index) => <motion.i key={index} animate={{ height: [5 + (index % 4) * 3, 10 + ((index * 7) % 20), 6 + (index % 3) * 4] }} transition={{ duration: 0.65 + (index % 5) * 0.08, repeat: Infinity, delay: index * 0.025 }} />)}</div>
 }
 
-export default function AIConsole({ messages, isListening, onToggleListening, onSubmit }) {
+export default function AIConsole({ messages, isListening, isProcessing, onToggleListening, onSubmit }) {
   const [command, setCommand] = useState('')
 
   function handleSubmit(event) {
@@ -25,12 +25,13 @@ export default function AIConsole({ messages, isListening, onToggleListening, on
             <p>{message.text}</p>
           </motion.div>
         ))}
+        {isProcessing && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="console-message processing"><span className="message-tag">JARVIS</span><p>PROCESSING<span className="processing-dots">...</span></p></motion.div>}
       </div>
       {isListening && <Waveform />}
       <form className="command-form" onSubmit={handleSubmit}>
         <button type="button" className={`mic-button ${isListening ? 'is-listening' : ''}`} onClick={onToggleListening} aria-label="Toggle listening"><Mic2 size={17} /></button>
         <input value={command} onChange={(event) => setCommand(event.target.value)} placeholder={isListening ? 'Listening for a command…' : 'Speak or type a command…'} aria-label="Command input" />
-        <button type="submit" className="send-button" aria-label="Send command"><ArrowUp size={17} /></button>
+        <button type="submit" className="send-button" aria-label="Send command" disabled={isProcessing}><ArrowUp size={17} /></button>
       </form>
       <div className="console-hint"><Sparkles size={12} /> Try “Open VS Code” or “What is on my schedule?”</div>
     </Panel>
