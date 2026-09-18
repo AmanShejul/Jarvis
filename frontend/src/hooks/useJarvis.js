@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import {
   getJarvisStatus,
   getSystemStats,
   sendCommand,
 } from '../services/api'
+
 import { initialActivity } from '../data/mockData'
 
 export function useJarvis() {
@@ -26,13 +28,14 @@ export function useJarvis() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [activity, setActivity] = useState(initialActivity)
 
-  // Stores a dangerous action waiting for confirmation
+  // Action waiting for confirmation
   const [pendingAction, setPendingAction] = useState(null)
 
+  // Conversation
   const [messages, setMessages] = useState([
     {
       role: 'jarvis',
-      text: ' Heyy Aman. How can I help you today?',
+      text: 'Hey Aman. How can I help you?',
     },
   ])
 
@@ -41,10 +44,9 @@ export function useJarvis() {
   // ---------------------------------------------------------
 
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setClock(new Date()),
-      1000
-    )
+    const timer = window.setInterval(() => {
+      setClock(new Date())
+    }, 1000)
 
     return () => window.clearInterval(timer)
   }, [])
@@ -88,7 +90,7 @@ export function useJarvis() {
   }, [])
 
   // ---------------------------------------------------------
-  // JARVIS VOICE
+  // VOICE
   // ---------------------------------------------------------
 
   const speak = useCallback((text) => {
@@ -122,6 +124,58 @@ export function useJarvis() {
   }, [])
 
   // ---------------------------------------------------------
+  // ADD USER MESSAGE
+  // ---------------------------------------------------------
+
+  const addUserMessage = useCallback((text) => {
+    setMessages((current) => [
+      ...current,
+      {
+        role: 'user',
+        text,
+      },
+    ])
+  }, [])
+
+  // ---------------------------------------------------------
+  // DANGEROUS COMMAND DETECTION
+  // ---------------------------------------------------------
+
+  const detectDangerousCommand = useCallback((command) => {
+    const normalized = command
+      .toLowerCase()
+      .replace(/[.,!?;:]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Shutdown
+    if (
+      normalized.includes('shut down my laptop') ||
+      normalized.includes('shut down the laptop') ||
+      normalized.includes('shutdown my laptop') ||
+      normalized.includes('shutdown the laptop') ||
+      normalized.includes('shutdown laptop') ||
+      normalized.includes('turn off my laptop') ||
+      normalized.includes('turn off the laptop')
+    ) {
+      return 'shutdown_laptop'
+    }
+
+    // Restart
+    if (
+      normalized.includes('restart my laptop') ||
+      normalized.includes('restart the laptop') ||
+      normalized.includes('restart laptop') ||
+      normalized.includes('restart my computer') ||
+      normalized.includes('restart the computer')
+    ) {
+      return 'restart_laptop'
+    }
+
+    return null
+  }, [])
+
+  // ---------------------------------------------------------
   // SUBMIT COMMAND
   // ---------------------------------------------------------
 
@@ -129,21 +183,17 @@ export function useJarvis() {
     async (command) => {
       const trimmedCommand = command.trim()
 
-      if (!trimmedCommand) {
+      if (!trimmedCommand || isProcessing) {
         return
       }
 
       const normalizedInput = trimmedCommand.toLowerCase()
 
       // =====================================================
-      // CONFIRMATION HANDLING
+      // HANDLE PENDING CONFIRMATION
       // =====================================================
 
       if (pendingAction) {
-        // -----------------------------------------------
-        // YES / CONFIRM
-        // -----------------------------------------------
-
         const positiveResponses = [
           'yes',
           'yeah',
@@ -159,27 +209,43 @@ export function useJarvis() {
           'ok',
         ]
 
-        if (
-          positiveResponses.some(
-            (response) =>
-              normalizedInput === response ||
-              normalizedInput.startsWith(`${response} `)
-          )
-        ) {
-          setMessages((current) => [
-            ...current,
-            {
-              role: 'user',
-              text: trimmedCommand,
-            },
-          ])
+        const negativeResponses = [
+          'no',
+          'nope',
+          'nah',
+          'cancel',
+          'stop',
+          'dont',
+          "don't",
+          'do not',
+          'never mind',
+          'never mind it',
+        ]
+
+        const isPositive = positiveResponses.some(
+          (response) =>
+            normalizedInput === response ||
+            normalizedInput.startsWith(`${response} `)
+        )
+
+        const isNegative = negativeResponses.some(
+          (response) =>
+            normalizedInput === response ||
+            normalizedInput.startsWith(`${response} `)
+        )
+
+        // ---------------------------------------------------
+        // YES
+        // ---------------------------------------------------
+
+        if (isPositive) {
+          addUserMessage(trimmedCommand)
 
           setIsProcessing(true)
 
           try {
-            const result = await sendCommand(
-              pendingAction.command
-            )
+            // Only NOW do we send the dangerous command
+            const result = await sendCommand(pendingAction.command)
 
             addJarvisMessage(result.message)
             speak(result.message)
@@ -206,45 +272,16 @@ export function useJarvis() {
           return
         }
 
-        // -----------------------------------------------
-        // NO / CANCEL
-        // -----------------------------------------------
+        // ---------------------------------------------------
+        // NO
+        // ---------------------------------------------------
 
-        const negativeResponses = [
-          'no',
-          'nope',
-          'nah',
-          'cancel',
-          'stop',
-          'dont',
-          "don't",
-          'do not',
-          'never mind',
-          'never mind it',
-        ]
+        if (isNegative) {
+          addUserMessage(trimmedCommand)
 
-        if (
-          negativeResponses.some(
-            (response) =>
-              normalizedInput === response ||
-              normalizedInput.startsWith(`${response} `)
-          )
-        ) {
-          const message =
-            'Understood, sir. Action cancelled.'
+          const message = 'Understood, sir. Action cancelled.'
 
-          setMessages((current) => [
-            ...current,
-            {
-              role: 'user',
-              text: trimmedCommand,
-            },
-            {
-              role: 'jarvis',
-              text: message,
-            },
-          ])
-
+          addJarvisMessage(message)
           speak(message)
 
           setPendingAction(null)
@@ -252,25 +289,16 @@ export function useJarvis() {
           return
         }
 
-        // -----------------------------------------------
-        // UNKNOWN CONFIRMATION RESPONSE
-        // -----------------------------------------------
+        // ---------------------------------------------------
+        // UNKNOWN RESPONSE
+        // ---------------------------------------------------
+
+        addUserMessage(trimmedCommand)
 
         const message =
           'Please say yes to proceed or no to cancel, sir.'
 
-        setMessages((current) => [
-          ...current,
-          {
-            role: 'user',
-            text: trimmedCommand,
-          },
-          {
-            role: 'jarvis',
-            text: message,
-          },
-        ])
-
+        addJarvisMessage(message)
         speak(message)
 
         return
@@ -280,46 +308,40 @@ export function useJarvis() {
       // NORMAL COMMAND
       // =====================================================
 
-      setMessages((current) => [
-        ...current,
-        {
-          role: 'user',
-          text: trimmedCommand,
-        },
-      ])
+      addUserMessage(trimmedCommand)
+
+      // -----------------------------------------------------
+      // CHECK DANGEROUS COMMAND BEFORE BACKEND
+      // -----------------------------------------------------
+
+      const dangerousAction =
+        detectDangerousCommand(trimmedCommand)
+
+      if (dangerousAction) {
+        const confirmationMessage =
+          dangerousAction === 'shutdown_laptop'
+            ? 'Shutdown requires confirmation, sir. Shall I proceed?'
+            : 'Restart requires confirmation, sir. Shall I proceed?'
+
+        setPendingAction({
+          command: trimmedCommand,
+          action: dangerousAction,
+        })
+
+        addJarvisMessage(confirmationMessage)
+        speak(confirmationMessage)
+
+        return
+      }
+
+      // -----------------------------------------------------
+      // SEND NORMAL COMMAND
+      // -----------------------------------------------------
 
       setIsProcessing(true)
 
       try {
         const result = await sendCommand(trimmedCommand)
-
-        // =================================================
-        // DANGEROUS COMMANDS
-        // =================================================
-
-        if (
-          result.action === 'shutdown_laptop' ||
-          result.action === 'restart_laptop'
-        ) {
-          const confirmationMessage =
-            result.action === 'shutdown_laptop'
-              ? 'Shutdown requires confirmation, sir. Shall I proceed?'
-              : 'Restart requires confirmation, sir. Shall I proceed?'
-
-          setPendingAction({
-            command: trimmedCommand,
-            action: result.action,
-          })
-
-          addJarvisMessage(confirmationMessage)
-          speak(confirmationMessage)
-
-          return
-        }
-
-        // =================================================
-        // NORMAL RESPONSE
-        // =================================================
 
         addJarvisMessage(result.message)
         speak(result.message)
@@ -342,7 +364,14 @@ export function useJarvis() {
         setIsProcessing(false)
       }
     },
-    [pendingAction, addJarvisMessage, speak]
+    [
+      pendingAction,
+      isProcessing,
+      addUserMessage,
+      addJarvisMessage,
+      speak,
+      detectDangerousCommand,
+    ]
   )
 
   // ---------------------------------------------------------
@@ -365,14 +394,20 @@ export function useJarvis() {
     clock,
     isListening,
     isPlaying,
+
     stats,
     status,
     activity,
+
     messages,
     isProcessing,
     pendingAction,
+
     submitCommand,
+
     toggleListening,
     togglePlaying,
+
+    speak,
   }
 }
