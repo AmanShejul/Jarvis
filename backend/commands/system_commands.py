@@ -24,10 +24,24 @@ def system_status_message() -> tuple[str, dict[str, int | None]]:
 
 def lock_laptop() -> bool:
     try:
-        ctypes.windll.user32.LockWorkStation()
+        subprocess.Popen(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Start-Sleep -Seconds 3; "
+                "rundll32.exe user32.dll,LockWorkStation"
+            ],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         return True
-    except OSError:
+    except Exception as e:
+        print(f"[JARVIS] Lock error: {e}")
         return False
+        
 
 
 def restart_laptop() -> bool:

@@ -32,7 +32,7 @@ export function useJarvis() {
   const [messages, setMessages] = useState([
     {
       role: 'jarvis',
-      text: 'Good morning, Aman. How can I help you today?',
+      text: ' Heyy Aman. How can I help you today?',
     },
   ])
 
